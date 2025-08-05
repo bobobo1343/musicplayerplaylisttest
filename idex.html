@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Drive MP3 Playlist Player</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #eee;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #1db954;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .controls button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #1db954;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .controls button:hover {
+      background-color: #17a44a;
+    }
+
+    #playlist {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+      max-height: 250px;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    #playlist li {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+    }
+
+    #playlist li:hover {
+      background: #222;
+    }
+
+    #playlist .active {
+      background: #1db954;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎶 Music Player</h1>
+
+  <audio id="audio" controls autoplay></audio>
+
+  <div class="controls">
+    <button onclick="prevTrack()">⏮️ Prev</button>
+    <button onclick="nextTrack()">⏭️ Next</button>
+    <button onclick="shuffleTrack()">🔀 Shuffle</button>
+  </div>
+
+  <ul id="playlist"></ul>
+
+  <script>
+    const folderId = '1DGz9zEQh29EAqTZpmWK5mwSj5HComnkn';
+    const apiKey = 'AIzaSyDsYE91wH7UDwu8eZNbD1CFuVcilgYeZhI';
+
+    const audio = document.getElementById('audio');
+    const playlistEl = document.getElementById('playlist');
+
+    let tracks = [];
+    let currentTrack = 0;
+
+    function getTrackUrl(id) {
+      return `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${apiKey}`;
+    }
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = '';
+      tracks.forEach((track, index) => {
+        const li = document.createElement('li');
+        li.textContent = track.name;
+        li.onclick = () => playTrack(index);
+        if (index === currentTrack) li.classList.add('active');
+        playlistEl.appendChild(li);
+      });
+    }
+
+    function playTrack(index) {
+      if (!tracks[index]) return;
+      currentTrack = index;
+      audio.src = getTrackUrl(tracks[index].id);
+      audio.play();
+      renderPlaylist();
+    }
+
+    function nextTrack() {
+      currentTrack = (currentTrack + 1) % tracks.length;
+      playTrack(currentTrack);
+    }
+
+    function prevTrack() {
+      currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
+      playTrack(currentTrack);
+    }
+
+    function shuffleTrack() {
+      const randomIndex = Math.floor(Math.random() * tracks.length);
+      playTrack(randomIndex);
+    }
+
+    async function loadTracks() {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='audio/mpeg'&fields=files(id,name)&key=${apiKey}`
+        );
+        const data = await res.json();
+        tracks = data.files;
+        if (!tracks.length) {
+          alert('No MP3 files found.');
+          return;
+        }
+        playTrack(0);
+      } catch (err) {
+        console.error('Error loading tracks:', err);
+      }
+    }
+
+    loadTracks();
+    audio.addEventListener('ended', nextTrack);
+  </script>
+</body>
+</html>
